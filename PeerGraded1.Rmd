@@ -1,0 +1,23 @@
+---
+title: 'Reproducible Research: Course Project 1'
+author: "Alejandro Osorio"
+date: "August 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Reading Data
+
+```{r}
+
+```
+
+## Processing Data
+
+```{r}
+
+```
+
