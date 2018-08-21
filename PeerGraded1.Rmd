@@ -7,17 +7,99 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
 ## Reading Data
 
 ```{r}
-
+dataoriginal <- read_csv("activity.csv")
 ```
 
-## Processing Data
+## Visualizing Data
+
+General structure:
+```{r}
+head(dataoriginal)
+```
+
+So three variables (steps, date and interval), in correct formats, and indeed with some NAs to be taken care of.
+
+Dimensioning data structure:
+```{r}
+dim(dataoriginal)
+```
+
+Dimensioning NAs:
+```{r}
+colSums((is.na(dataoriginal)))
+```
+So all NAs are concentrated within the first variable, with a total number of rows equal to the total number of NAs.
+
+Figuring how NAs are distributed, by date:
+```{r}
+table(is.na(dataoriginal$steps), dataoriginal$date)
+```
+
+So dates with NAs were all 100% NAs.
+
+## First Part: Ignoring NAs
+
+### Creating dataset without rows that contain NAs
+
+Rows to ignore:
+```{r}
+rowignore <- which(rowSums(is.na(dataoriginal)) != 0)
+length(rowignore)
+```
+
+Dataset without rows that contain NAs:
+```{r}
+datanonas <- dataoriginal[-rowignore,]
+head(datanonas)
+```
+
+### Steps per day
+
+Dataset:
+```{r}
+dailysteps <- datanonas %>% group_by(date) %>% summarise(totalsteps = sum(steps))
+head(dailysteps)
+```
+
+Histogram:
+```{r}
+hist(dailysteps$totalsteps)
+```
+
+### Mean and Median steps per day
+
+Dataset:
+```{r}
+dailystats <- datanonas %>% group_by(date) %>% summarise(meansteps = mean(steps), mediansteps = median(steps))
+head(dailystats)
+```
+
+### Average daily activity pattern
+
+Dataset (TERMINAR):
+```{r}
+dailyactivity <- datanonas %>% group_by(interval) %>% summarise(avgsteps = mean(steps))
+head(dailyactivity)
+```
 
 ```{r}
-
+with(dailyactivity, plot(x = interval, y = avgsteps, type = "l", xlab = "interval"))
 ```
 
+Interval with maximum avg number of steps:
+```{r}
+dailyactivity %>% filter(avgsteps == max(avgsteps))
+```
+
+
+## Second Part: Replacing NAs
+
+### Processing Data
+
+As said before, dates with NAs were all 100% NAs.  Therefore, the values of dates with NAs were replaced with an average of their neighbouring dates.
