@@ -2,7 +2,9 @@
 title: 'Reproducible Research: Course Project 1'
 author: "Alejandro Osorio"
 date: "August 2018"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -10,13 +12,15 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-## Reading Data
+## Reading and Visualizing Data
+
+### Reading
 
 ```{r}
 dataoriginal <- read_csv("activity.csv")
 ```
 
-## Visualizing Data
+### Visualizing
 
 General structure:
 ```{r}
@@ -199,5 +203,27 @@ boxplot(dailystats2$mediansteps, xlab = "median num of steps", main = "With modi
 
 As it can be seen from the plots,  the values obtained after replacing NAs, differ from the estimates from the first part of the assignment.  Specifically, the impact of imputing missing data on the estimates of the total daily number of steps, shrunk the variability of the results.
 
-## Activity patterns between weekdays and weekends
+## Third Part: Activity patterns between weekdays and weekends
+
+### Creating dataset with factors
+
+Adding each date's corresponding days, to the dataset with filled-in NAs :
+```{r}
+datanew <- datanew %>% mutate(day =  factor(weekdays(date)))
+head(datanew)
+```
+
+Adding factor variable (weekday / weekend) to previous dataset:
+```{r}
+datanew <- datanew %>% mutate(daytype = factor(ifelse(day %in% c("sábado", "domingo"), "weekend", "weekday")))
+head(datanew)
+```
+
+### Plotting average number of steps taken, across weekdays or weekends
+
+```{r}
+ggplot(data = datanew) +
+        geom_line(mapping = aes(x = interval, y = steps, color = daytype)) +
+        facet_wrap(~ daytype, nrow = 2)
+```
 
