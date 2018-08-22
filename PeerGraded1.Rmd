@@ -23,25 +23,12 @@ General structure:
 head(dataoriginal)
 ```
 
-So three variables (steps, date and interval), in correct formats, and indeed with some NAs to be taken care of.
+So three variables (steps, date and interval), in correct formats, and indeed with some NAs to be taken care of (in Second Part: Handling NAs).
 
 Dimensioning data structure:
 ```{r}
 dim(dataoriginal)
 ```
-
-Dimensioning NAs:
-```{r}
-colSums((is.na(dataoriginal)))
-```
-So all NAs are concentrated within the first variable, with a total number of rows equal to the total number of NAs.
-
-Figuring how NAs are distributed, by date:
-```{r}
-table(is.na(dataoriginal$steps), dataoriginal$date)
-```
-
-So dates with NAs were all 100% NAs.
 
 ## First Part: Ignoring NAs
 
@@ -59,12 +46,12 @@ datanonas <- dataoriginal[-rowignore,]
 head(datanonas)
 ```
 
-### Steps per day
+### Total number of steps taken per day
 
 Dataset:
 ```{r}
 dailysteps <- datanonas %>% group_by(date) %>% summarise(totalsteps = sum(steps))
-head(dailysteps)
+summary(dailysteps)
 ```
 
 Histogram:
@@ -72,20 +59,20 @@ Histogram:
 hist(dailysteps$totalsteps)
 ```
 
-### Mean and Median steps per day
+### Mean and Median number of steps taken per day
 
 Dataset:
 ```{r}
 dailystats <- datanonas %>% group_by(date) %>% summarise(meansteps = mean(steps), mediansteps = median(steps))
-head(dailystats)
+summary(dailystats)
 ```
 
 ### Average daily activity pattern
 
-Dataset (TERMINAR):
+Dataset:
 ```{r}
 dailyactivity <- datanonas %>% group_by(interval) %>% summarise(avgsteps = mean(steps))
-head(dailyactivity)
+summary(dailyactivity)
 ```
 
 ```{r}
@@ -97,9 +84,120 @@ Interval with maximum avg number of steps:
 dailyactivity %>% filter(avgsteps == max(avgsteps))
 ```
 
+## Second Part: Handling NAs
 
-## Second Part: Replacing NAs
+### Dimensioning NAs
 
-### Processing Data
+Total number of rows with NAs:
+```{r}
+colSums((is.na(dataoriginal)))
+```
+So all NAs are concentrated within the first variable, with a total number of rows equal to the total number of NAs.
 
-As said before, dates with NAs were all 100% NAs.  Therefore, the values of dates with NAs were replaced with an average of their neighbouring dates.
+Figuring how NAs are distributed, by date:
+```{r}
+table(is.na(dataoriginal$steps), dataoriginal$date)
+```
+
+So dates with NAs were all 100% NAs.
+
+### Strategy for handling NAs
+
+Given that dates with NAs were all 100% NAs, the days ignored in previous analysis, were:
+
+```{r}
+missingdays <- unique(dataoriginal[rowignore,]$date)
+missingdays
+```
+
+The strategy consists on replacing NAs with their total mean value, for each interval (values already available, from "Average daily activity pattern").
+
+### Creating dataset that handles NAs
+
+First, replacing NAs for mean values obtained previously:
+```{r}
+datanas <- data.frame("steps" = integer(0), "date" = integer(0), "interval" = integer(0))
+class(datanas$date) <- "Date"
+for (day in 1:length(missingdays)) {
+        datanas <- bind_rows(datanas, data.frame("steps" = dailyactivity$avgsteps, "date" = missingdays[[day]], "interval" = dailyactivity$interval))
+}
+```
+
+Checking number of rows per date:
+```{r}
+table(datanas$date)
+```
+
+Checking structure:
+```{r}
+str(datanas)
+```
+
+So each date that had 100% NAs for the 'steps' variable, had them replaced for the total means.  Finally, binding them with the data that had NAs filtered, and arranging the result by date:
+
+```{r}
+datanew <- bind_rows(datanonas, datanas)
+datanew <- arrange(datanew, date)
+```
+
+Checking final structure:
+```{r}
+str(datanew)
+```
+
+Which has same dimensions and structure than the original dataset.
+
+### Total number of steps taken per day
+
+Dataset:
+```{r}
+dailysteps2 <- datanew %>% group_by(date) %>% summarise(totalsteps = sum(steps))
+summary(dailysteps2)
+```
+
+Which shows differences with the dataset without NAs, regarding 1st and 3rd quarters of the total number of steps.
+
+Histogram:
+```{r}
+hist(dailysteps2$totalsteps)
+```
+
+Which looks pretty close to the one without NAs.
+
+### Mean and Median number of steps taken per day
+
+Dataset:
+```{r}
+dailystats2 <- datanew %>% group_by(date) %>% summarise(meansteps = mean(steps), mediansteps = median(steps))
+summary(dailystats2)
+```
+
+### Comparison between results without NAs and with replaced NAs
+
+#### Comparison between total number of steps:
+```{r}
+par(mfrow = c(1,2))
+boxplot(dailysteps$totalsteps, xlab = "total steps", main = "Without NAs")
+boxplot(dailysteps2$totalsteps, xlab = "total steps", main = "With modified NAs")
+```
+
+#### Comparison between average number of steps:
+```{r}
+par(mfrow = c(1,2))
+boxplot(dailystats$meansteps, xlab = "avg num of steps", main = "Without NAs")
+boxplot(dailystats2$meansteps, xlab = "avg num of steps", main = "With modified NAs")
+```
+
+#### Comparison between median number of steps:
+```{r}
+par(mfrow = c(1,2))
+boxplot(dailystats$mediansteps, xlab = "median num of steps", main = "Without NAs")
+boxplot(dailystats2$mediansteps, xlab = "median num of steps", main = "With modified NAs")
+```
+
+#### Conclusions:
+
+As it can be seen from the plots,  the values obtained after replacing NAs, differ from the estimates from the first part of the assignment.  Specifically, the impact of imputing missing data on the estimates of the total daily number of steps, shrunk the variability of the results.
+
+## Activity patterns between weekdays and weekends
+
